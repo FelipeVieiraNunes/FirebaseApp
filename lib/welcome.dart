@@ -1,34 +1,31 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
-import 'welcome.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-Future<void> main() async {
- WidgetsFlutterBinding.ensureInitialized();
- await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
- runApp(const MyApp());
-}
+class WelcomeMessage extends StatelessWidget {
+  const WelcomeMessage({super.key});
 
-class MyApp extends StatelessWidget {
- const MyApp({super.key});
- // This widget is the root of your application.
- @override
- Widget build(BuildContext context) {
-   return MaterialApp(
-     title: 'Firebase App',
-     theme: ThemeData(primarySwatch: Colors.indigo),
-     home: const HomePage(),
-   );
- }
-}
-class HomePage extends StatelessWidget {
- const HomePage({super.key});
+  @override
+  Widget build(BuildContext context) {
+    final docRef = FirebaseFirestore.instance
+        .collection('config')
+        .doc('welcome');
 
- @override
- Widget build(BuildContext context) {
-   return Scaffold(
-     appBar: AppBar(title: const Text("Home")),
-     body: const Center(child: WelcomeMessage()),
-   );
- }
+    return StreamBuilder<DocumentSnapshot>(
+      stream: docRef.snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        }
+        if (!snapshot.hasData || !snapshot.data!.exists) {
+          return const Text("Mensagem não encontrada");
+        }
+
+        final data = snapshot.data!.data() as Map<String, dynamic>;
+        return Text(
+          data['text'] ?? 'Bem-vindo!',
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        );
+      },
+    );
+  }
 }
